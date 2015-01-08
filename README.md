@@ -50,6 +50,6 @@ Needs a config file `./test_config.json`:
 
 ## Todo
 
-[] Better test coverage
-[] Support [polling](https://www.blitline.com/docs/polling) to avoid needing postback server
-[] Allow resizing to fit both height and width
+- [ ] Better test coverage
+- [ ] Support [polling](https://www.blitline.com/docs/polling) to avoid needing postback server
+- [ ] Allow resizing to fit both height and width
