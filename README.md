@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/digidem/blitline-resizer.svg)](https://travis-ci.org/digidem/blitline-resizer)
+
 Blitline Image Resizer
 ======================
 
