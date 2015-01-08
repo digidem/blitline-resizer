@@ -11,6 +11,10 @@
     "image",
     "resize"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/digidem/blitline-resizer"
+  },
   "author": "Gregor MacLennan",
   "license": "MIT",
   "dependencies": {
