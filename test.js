@@ -3,7 +3,16 @@ var ngrok = require('ngrok');
 var http = require('http');
 var Resizer = require('./');
 var bodyParser = require('body-parser').json();
-var config = require('./test_config.json');
+var config;
+
+try {
+    config = require('./test_config.json');
+} catch(e) {
+    config = {
+        "blitline_app_id": process.env.BLITLINE_APP_ID,
+        "s3_bucket": process.env.S3_BUCKET
+    };
+}
 
 var port = 8080;
 
