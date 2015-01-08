@@ -1,0 +1,28 @@
+{
+  "name": "blitline-resizer",
+  "version": "0.0.1",
+  "description": "Resizes images using Blitline",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [
+    "blitline",
+    "image",
+    "resize"
+  ],
+  "author": "Gregor MacLennan",
+  "license": "MIT",
+  "dependencies": {
+    "mime-types": "^2.0.7",
+    "simple_blitline_node": "git://github.com/gmaclennan/simple_blitline_node",
+    "url": "^0.10.2",
+    "validator": "^3.27.0",
+    "xtend": "^4.0.0"
+  },
+  "devDependencies": {
+    "body-parser": "^1.10.1",
+    "ngrok": "^0.1.98",
+    "tape": "^3.0.3"
+  }
+}
