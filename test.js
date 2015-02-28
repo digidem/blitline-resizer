@@ -42,7 +42,6 @@ function setup(t) {
         t.equal(typeof Resizer, 'function', 'Resizer exports a function');
         t.throws(Resizer, /must provide an config object/, 'throws if no config');
         t.throws(Resizer.bind(null, {}), /must provide a 'blitlineAppId' option/, 'throws if no blitlineAppId option');
-        t.throws(Resizer.bind(null, { blitlineAppId: 'dummy' }), /must provide a valid URL for 'postbackUrl'/, 'throws if no valid postbackUrl');
 
         ngrok.connect(port, function(err, url) {
             t.error(err, 'successfully set up test server');
@@ -252,6 +251,33 @@ test('Copies original to s3', function(t) {
         var url = 'http://' + process.env.S3_BUCKET + '.s3.amazonaws.com/' + images[0].split('/').pop();
 
         request(url).pipe(imageSizeStream);
+    };
+});
+
+test('Long polls for response if no postbackUrl is provided', function(t) {
+    var resize = Resizer({
+            blitlineAppId: process.env.BLITLINE_APP_ID,
+            s3Bucket: process.env.S3_BUCKET
+        }),
+        timer;
+
+    var resizeTask = {
+        images: images,
+        sizes: [500, 1000]
+    };
+
+    resize(resizeTask, function(err, data) {
+        t.error(err, 'longpoll returned without error');
+        t.ok(data instanceof Array, 'got an array back');
+        t.equal(data.length, resizeTask.images.length, 'got correct number of jobs back');
+        t.equal(typeof data[0], 'object', 'got and object back for first job');
+        t.error(data[0].results.errors, 'Blitline processing complete without errors');
+        t.equal(data[0].results.images.length, resizeTask.sizes.length, 'got correct number of images back');
+        t.end();
+    });
+
+    postbackCallback = function(err, req, res) {
+        t.fail('should not call postback');
     };
 });
 

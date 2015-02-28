@@ -6,6 +6,7 @@ var url = require('url');
 var mime = require('mime-types');
 var crypto = require('crypto');
 var path = require('path');
+var request = require('request');
 
 var BlitlineResizer = function(config) {
   if (typeof config != 'object')
@@ -15,7 +16,8 @@ var BlitlineResizer = function(config) {
     throw new TypeError('must provide a \'blitlineAppId\' option');
 
   if (!validator.isURL(config.postbackUrl))
-    throw new TypeError('must provide a valid URL for \'postbackUrl\'');
+    console.log('Blitline really recommends you provide a \'postbackUrl\': https://www.blitline.com/docs/polling\n' +
+      'but since you have not provided a valid url we will long poll for a response');
 
   if (typeof config.s3Bucket != 'string')
     throw new TypeError('must provide a \'s3Bucket\' option');
@@ -84,7 +86,18 @@ var BlitlineResizer = function(config) {
 
     blitline.postJobs(function(err, data) {
       if (!err) data.secret = secret;
-      callback(err, data);
+      if (config.postbackUrl || err) return callback(err, data);
+
+      var jobs = data.results.map(function(value) { return value.job_id; });
+      var results = [];
+
+      jobs.forEach(function(job_id) {
+        request('https://cache.blitline.com/listen/' + job_id, function(err, res, body) {
+          if (err) callback(err);
+          results.push(JSON.parse(body));
+          if (results.length === jobs.length) callback(null, results);
+        });
+      });
     });
   }
 

@@ -15,7 +15,11 @@ Created for resizing images for use on responsive websites, hence for now only f
 
 2. [Set up permissions](https://www.blitline.com/docs/s3_permissions) on an Amazon S3 bucket so that Blitline can put the results there.
 
-3. You will need a server that can receive and process the [postback](https://www.blitline.com/docs/postback) (think webhook) that Blitline posts to when image processing is complete.
+3. If you submit a postbackUrl you will need a server that can receive and process the [postback](https://www.blitline.com/docs/postback) (think webhook) that Blitline posts to when image processing is complete.
+
+If you set `options.postbackUrl` then `resize()` will return an array of hashes with job_id according to https://www.blitline.com/docs/api#returnData - one job for each image you submit.
+
+If you do not set `options.postbackUrl` then it should return an array of results for each image as described http://www.blitline.com/docs/postback - this is not guaranteed though, the request can timeout. Using a postbackUrl is more reliable.
 
 ```javascript
 var config = {
@@ -39,13 +43,13 @@ resize(options, function(err, response) {
 
 ## Tests
 
-Needs a config file `./test_config.json`:
+Needs the following environment variables set:
 
-```json
-{
-    "blitline_app_id": "YOUR_BLITLINE_APP_ID",
-    "s3_bucket": "TEST_AMAZON_S3_BUCKET_NAME"
-}
+```sh
+BLITLINE_APP_ID=_your blitline app id_
+S3_KEY=_s3 key ID for test user_
+S3_SECRET=_s3 secret key for test user_
+S3_BUCKET=_test s3 bucket_ # NB. Blitline should have PutObject permissions, your S3 test user should have DeleteObject permissions
 ```
 
 `npm test`
@@ -53,10 +57,14 @@ Needs a config file `./test_config.json`:
 ## Todo
 
 - [x] Better test coverage
-- [ ] Support [polling](https://www.blitline.com/docs/polling) to avoid needing postback server
+- [x] Support [polling](https://www.blitline.com/docs/polling) to avoid needing postback server
 - [ ] Allow resizing to fit both height and width
 
 ## Changelog
+
+### v0.2.0
+
+Support for long polling without a postback
 
 ### v0.1.0
 
