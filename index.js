@@ -27,6 +27,8 @@ var BlitlineResizer = function(config) {
     if (!(options.images instanceof Array))
       return callback(new TypeError('must provide an array of images'));
 
+    options.retina = (typeof options.retina === 'boolean') ? options.retina : false;
+
     options.images.forEach(function(imageUrl) {
       if (!validator.isURL(imageUrl))
         return callback(new TypeError(imageUrl + ' is not a valid url'));
@@ -74,7 +76,7 @@ var BlitlineResizer = function(config) {
 
       options.sizes.forEach(function(size) {
         var filename = renamer(imageUrl, size);
-        job.functions = job.functions.concat(resizeJson(filename, size, true));
+        job.functions = job.functions.concat(resizeJson(filename, size, options.retina));
       });
 
       blitline.addJob(extend(jobDefaults, job));
