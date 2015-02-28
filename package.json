@@ -1,6 +1,6 @@
 {
   "name": "blitline-resizer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Resizes images using Blitline",
   "main": "index.js",
   "scripts": {
@@ -22,6 +22,7 @@
     "simple_blitline_node": "git://github.com/gmaclennan/simple_blitline_node",
     "url": "^0.10.2",
     "validator": "^3.27.0",
+    "request": "^2.53.0",
     "xtend": "^4.0.0"
   },
   "devDependencies": {
@@ -31,7 +32,6 @@
     "knox": "^0.9.2",
     "lodash": "^3.3.1",
     "ngrok": "^0.1.98",
-    "request": "^2.53.0",
     "tap-spec": "^2.2.2",
     "tape": "^3.0.3"
   }
