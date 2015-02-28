@@ -273,6 +273,14 @@ test('Long polls for response if no postbackUrl is provided', function(t) {
         t.equal(typeof data[0], 'object', 'got and object back for first job');
         t.error(data[0].results.errors, 'Blitline processing complete without errors');
         t.equal(data[0].results.images.length, resizeTask.sizes.length, 'got correct number of images back');
+        
+        // Files that need cleanup from s3
+        s3files = s3files.concat(data.reduce(function(p, c) {
+            return p.concat(c.results.images.map(function(image) {
+                return image.s3_url;
+            }));
+        }, []));
+        
         t.end();
     });
 
