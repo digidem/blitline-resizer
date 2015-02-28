@@ -52,6 +52,12 @@ Needs a config file `./test_config.json`:
 
 ## Todo
 
-- [ ] Better test coverage
+- [x] Better test coverage
 - [ ] Support [polling](https://www.blitline.com/docs/polling) to avoid needing postback server
 - [ ] Allow resizing to fit both height and width
+
+## Changelog
+
+### v0.1.0
+
+Add `options.retina` to also create retina versions of images. Defaults to false. **NB. Breaking change** previously it created retina versions by default.
