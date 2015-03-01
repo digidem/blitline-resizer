@@ -39,7 +39,7 @@ var BlitlineResizer = function(config) {
     if (!(options.sizes instanceof Array))
       return callback(new TypeError('must provide an array of sizes'));
 
-    var renamer = options.renamer || function(imageUrl, size) {
+    var renamer = options.renamer || config.renamer || function(imageUrl, size) {
       var pathname = url.parse(imageUrl).pathname;
       var ext = path.extname(pathname);
       var basename = path.basename(pathname, ext);
