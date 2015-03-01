@@ -121,13 +121,6 @@ function checkPostback(t, results) {
     });
 }
 
-function createTimeout(t) {
-    return setTimeout(function() {
-        t.fail('Timeout waiting for blitline to process jobs');
-        t.end();
-    }, timeout);
-}
-
 test('Resizes a single image', function(t) {
     var resize = Resizer(resizerDefaults),
         timer;
@@ -139,7 +132,7 @@ test('Resizes a single image', function(t) {
 
     resize(resizeTask, checkResizeReponse(t, resizeTask));
 
-    resizeTask.timer = createTimeout(t);
+    t.timeoutAfter(timeout);
 
     postbackCallback = function(err, req, res) {
         var results = req.body.results;
@@ -148,11 +141,36 @@ test('Resizes a single image', function(t) {
             return image.meta.width;
         });
         t.deepEqual(resultsSizes.sort(), resizeTask.sizes.sort(), 'got the correct sizes back');
-        clearTimeout(resizeTask.timer);
         t.end();
     };
 
 });
+
+test('Resizes image from raw.github without correct headers', function(t) {
+    var resize = Resizer(resizerDefaults),
+        timer;
+
+    var resizeTask = {
+        images: [ "https://raw.githubusercontent.com/digidem-test/test/master/assets_other/14782435_9baff664f2_o_d.jpg" ],
+        sizes: [500]
+    };
+
+    resize(resizeTask, checkResizeReponse(t, resizeTask));
+
+    t.timeoutAfter(timeout);
+
+    postbackCallback = function(err, req, res) {
+        var results = req.body.results;
+        checkPostback(t, results);
+        var resultsSizes = results.images.map(function(image) {
+            return image.meta.width;
+        });
+        t.deepEqual(resultsSizes.sort(), resizeTask.sizes.sort(), 'got the correct sizes back');
+        t.end();
+    };
+
+});
+
 
 test('Resizes multiple images, returning a separate job for each image', function(t) {
     var resize = Resizer(resizerDefaults),
@@ -165,7 +183,7 @@ test('Resizes multiple images, returning a separate job for each image', functio
 
     resize(resizeTask, checkResizeReponse(t, resizeTask));
 
-    resizeTask.timer = createTimeout(t);
+    t.timeoutAfter(timeout);
 
     postbackCallback = function(err, req, res) {
         var results = req.body.results;
@@ -177,7 +195,6 @@ test('Resizes multiple images, returning a separate job for each image', functio
 
         if (!resizeTask.jobs.length) {
             t.pass('all jobs returned');
-            clearTimeout(resizeTask.timer);
             t.end();
         }
     };
@@ -195,7 +212,7 @@ test('Creates retina versions', function(t) {
 
     resize(resizeTask, checkResizeReponse(t, resizeTask));
 
-    resizeTask.timer = createTimeout(t);
+    t.timeoutAfter(timeout);
 
     postbackCallback = function(err, req, res) {
         var results = req.body.results;
@@ -211,7 +228,6 @@ test('Creates retina versions', function(t) {
 
         t.deepEqual(resultsSizes, expectedSizes, 'got the correct sizes back');
 
-        clearTimeout(resizeTask.timer);
         t.end();
     };
 
@@ -228,7 +244,7 @@ test('Copies original to s3', function(t) {
 
     resize(resizeTask, checkResizeReponse(t, resizeTask));
 
-    resizeTask.timer = createTimeout(t);
+    t.timeoutAfter(timeout);
 
     postbackCallback = function(err, req, res) {
         var results = req.body.results;
@@ -239,7 +255,6 @@ test('Copies original to s3', function(t) {
         imageSizeStream.on('size', function(dimensions) {
             // imageSizeStream.destroy();
             t.equal(dimensions.width, imagesMeta[images[0]].width, 'original present on s3');
-            clearTimeout(resizeTask.timer);
             t.end();
         });
 
@@ -268,13 +283,12 @@ test('Sets custom headers on the postback', function(t) {
 
     resize(resizeTask, checkResizeReponse(t, resizeTask));
 
-    resizeTask.timer = createTimeout(t);
+    t.timeoutAfter(timeout);
 
     postbackCallback = function(err, req, res) {
         var results = req.body.results;
         checkPostback(t, results);
         t.equal(req.headers['x-custom-header'], 'my custom header', 'postback has custom header');
-        clearTimeout(resizeTask.timer);
         t.end();
     };
 });
