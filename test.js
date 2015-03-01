@@ -254,6 +254,31 @@ test('Copies original to s3', function(t) {
     };
 });
 
+test('Sets custom headers on the postback', function(t) {
+    var resize = Resizer(resizerDefaults),
+        timer;
+
+    var resizeTask = {
+        images: [ images[0] ],
+        sizes: [500],
+        postbackHeaders: {
+            'x-custom-header': 'my custom header'
+        }
+    };
+
+    resize(resizeTask, checkResizeReponse(t, resizeTask));
+
+    resizeTask.timer = createTimeout(t);
+
+    postbackCallback = function(err, req, res) {
+        var results = req.body.results;
+        checkPostback(t, results);
+        t.equal(req.headers['x-custom-header'], 'my custom header', 'postback has custom header');
+        clearTimeout(resizeTask.timer);
+        t.end();
+    };
+});
+
 test('Long polls for response if no postbackUrl is provided', function(t) {
     var resize = Resizer({
             blitlineAppId: process.env.BLITLINE_APP_ID,
