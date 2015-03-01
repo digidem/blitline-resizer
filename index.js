@@ -51,7 +51,7 @@ var BlitlineResizer = function(config) {
       }
     };
 
-    var secret = options.secret || crypto.randomBytes(32).toString('base64');
+    var secret = options.secret || config.secret || crypto.randomBytes(32).toString('base64');
 
     var headers = {
       "X-Blitline-Signature": secret,
