@@ -62,6 +62,10 @@ S3_BUCKET=_test s3 bucket_ # NB. Blitline should have PutObject permissions, you
 
 ## Changelog
 
+### v0.2.1
+
+Can set secret on initial config, rather than each task
+
 ### v0.2.0
 
 Support for long polling without a postback

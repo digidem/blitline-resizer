@@ -1,6 +1,6 @@
 {
   "name": "blitline-resizer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Resizes images using Blitline",
   "main": "index.js",
   "scripts": {
