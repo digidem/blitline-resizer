@@ -103,7 +103,7 @@ var BlitlineResizer = function(config) {
 
   // Creates resize function job parameters for Blitline
   // Returns an array
-  // If 'retina' is true returns a second function to 
+  // If 'retina' is true returns a second function to
   // create the image at double resolution.
   function resizeJson(filename, width, retina) {
     var fn = [{
@@ -117,7 +117,9 @@ var BlitlineResizer = function(config) {
 
     if (retina) {
       var ext = path.extname(filename);
-      filename = path.basename(filename, ext) + '@2x' + ext;
+      var dirname = path.dirname(filename);
+      dirname = dirname === '.' ? '' : dirname + '/';
+      filename = dirname + path.basename(filename, ext) + '@2x' + ext;
 
       fn.push({
         "name": "resize_to_fit",

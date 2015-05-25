@@ -4,11 +4,9 @@ var http = require('http');
 var knox = require('knox');
 var dotenv = require('dotenv');
 var request = require('request');
-var _ = require('lodash');
 var createImageSizeStream = require('image-size-stream');
 var Resizer = require('./');
 var bodyParser = require('body-parser').json();
-var config;
 
 // Try to load env variables from .env
 dotenv.load();
@@ -27,11 +25,9 @@ var images = ["https://farm6.staticflickr.com/5595/15103964698_67fae4c535_k_d.jp
 
 var imagesMeta = {};
 
-var s3files = [];
+var server, resizerDefaults, postbackCallback;
 
-var server, resizerDefaults, postbackUrl, postbackCallback;
-
-function setup(t) {
+function setup() {
     test('Test setup', function(t) {
         server = http.createServer(function(req, res) {
             bodyParser(req, res, function(err) {
@@ -77,16 +73,17 @@ function setup(t) {
 
 }
 
-function teardown(cb) {
+function teardown() {
     test('Cleaup tmp files from s3', function(t) {
-        s3files = _.uniq(s3files).concat(images);
-
-        t.plan(s3files.length);
-
-        s3files.forEach(function(file) {
-            file = file.split('/').pop();
-            client.deleteFile(file, function(err, res) {
-                t.error(err, 'deleted file ' + file);
+        client.list(function(err, data) {
+            if (err) return t.end(err);
+            var keys = data.Contents.map(function(v) {
+                return v.Key;
+            });
+            client.deleteMultiple(keys, function(err) {
+                t.error(err, 'Deleted files from test s3 bucket');
+                console.log(keys.join('\n'));
+                t.end();
             });
         });
     });
@@ -114,16 +111,10 @@ function checkResizeReponse(t, resizeTask) {
 function checkPostback(t, results) {
     t.equal(typeof results, 'object', 'got postback results from Blitline');
     t.error(results.errors, 'Blitline processing complete without errors');
-
-    // store s3_url so we can delete later
-    results.images.forEach(function(image) {
-        s3files.push(image.s3_url);
-    });
 }
 
 test('Resizes a single image', function(t) {
-    var resize = Resizer(resizerDefaults),
-        timer;
+    var resize = Resizer(resizerDefaults);
 
     var resizeTask = {
         images: [ images[0] ],
@@ -134,7 +125,7 @@ test('Resizes a single image', function(t) {
 
     t.timeoutAfter(timeout);
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function(err, req) {
         var results = req.body.results;
         checkPostback(t, results);
         var resultsSizes = results.images.map(function(image) {
@@ -147,8 +138,7 @@ test('Resizes a single image', function(t) {
 });
 
 test('Resizes image from raw.github without correct headers', function(t) {
-    var resize = Resizer(resizerDefaults),
-        timer;
+    var resize = Resizer(resizerDefaults);
 
     var resizeTask = {
         images: [ "https://raw.githubusercontent.com/digidem-test/test/master/assets_other/14782435_9baff664f2_o_d.jpg" ],
@@ -159,7 +149,7 @@ test('Resizes image from raw.github without correct headers', function(t) {
 
     t.timeoutAfter(timeout);
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function(err, req) {
         var results = req.body.results;
         checkPostback(t, results);
         var resultsSizes = results.images.map(function(image) {
@@ -173,8 +163,7 @@ test('Resizes image from raw.github without correct headers', function(t) {
 
 
 test('Resizes multiple images, returning a separate job for each image', function(t) {
-    var resize = Resizer(resizerDefaults),
-        timer;
+    var resize = Resizer(resizerDefaults);
 
     var resizeTask = {
         images: images,
@@ -185,7 +174,7 @@ test('Resizes multiple images, returning a separate job for each image', functio
 
     t.timeoutAfter(timeout);
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function(err, req) {
         var results = req.body.results;
         checkPostback(t, results);
 
@@ -202,7 +191,7 @@ test('Resizes multiple images, returning a separate job for each image', functio
 
 test('Creates retina versions', function(t) {
     var resize = Resizer(resizerDefaults),
-        timer;
+        s3UrlPrefix = 'http://' + process.env.S3_BUCKET + '.s3.amazonaws.com/';
 
     var resizeTask = {
         images: [ images[0] ],
@@ -214,7 +203,7 @@ test('Creates retina versions', function(t) {
 
     t.timeoutAfter(timeout);
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function(err, req) {
         var results = req.body.results;
         checkPostback(t, results);
 
@@ -226,16 +215,71 @@ test('Creates retina versions', function(t) {
             return size * 2;
         })).sort();
 
+        var s3Urls = results.images.map(function(image) {
+            return image.s3_url;
+        }).sort();
+
+        var expectedUrls = resizeTask.sizes.reduce(function(prev, size) {
+            var url = s3UrlPrefix + images[0].split('/').pop().replace('.jpg', '') + '-' + size + '.jpg';
+            var retinaUrl = s3UrlPrefix + images[0].split('/').pop().replace('.jpg', '') + '-' + size + '@2x.jpg';
+            prev.push(url, retinaUrl);
+            return prev;
+        }, []).sort();
+
         t.deepEqual(resultsSizes, expectedSizes, 'got the correct sizes back');
+        t.deepEqual(s3Urls, expectedUrls, 'images correctly named on s3');
 
         t.end();
     };
 
 });
 
-test('Copies original to s3', function(t) {
+test('Works with custom renamer', function(t) {
+    var renamer = function(imageUrl, size) {
+      var ext = '.jpg';
+
+      if (size) {
+        return 'subfolder/testimage-' + size + ext;
+      } else {
+        return 'subfolder/testimage' + ext;
+      }
+    };
+
     var resize = Resizer(resizerDefaults),
-        timer;
+        s3UrlPrefix = 'http://' + process.env.S3_BUCKET + '.s3.amazonaws.com/';
+
+    var resizeTask = {
+        images: [ images[0] ],
+        sizes: [400],
+        retina: true,
+        renamer: renamer
+    };
+
+    resize(resizeTask, checkResizeReponse(t, resizeTask));
+
+    t.timeoutAfter(timeout);
+
+    postbackCallback = function(err, req) {
+        var results = req.body.results;
+        checkPostback(t, results);
+
+        var s3Urls = results.images.map(function(image) {
+            return image.s3_url;
+        }).sort();
+
+        var expectedUrls = [
+            s3UrlPrefix + 'subfolder/testimage-400.jpg',
+            s3UrlPrefix + 'subfolder/testimage-400@2x.jpg'
+        ].sort();
+
+        t.deepEqual(s3Urls, expectedUrls, 'images correctly renamed on s3');
+
+        t.end();
+    };
+});
+
+test('Copies original to s3', function(t) {
+    var resize = Resizer(resizerDefaults);
 
     var resizeTask = {
         images: [ images[0] ],
@@ -246,7 +290,7 @@ test('Copies original to s3', function(t) {
 
     t.timeoutAfter(timeout);
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function(err, req) {
         var results = req.body.results;
         checkPostback(t, results);
 
@@ -270,8 +314,7 @@ test('Copies original to s3', function(t) {
 });
 
 test('Sets custom headers on the postback', function(t) {
-    var resize = Resizer(resizerDefaults),
-        timer;
+    var resize = Resizer(resizerDefaults);
 
     var resizeTask = {
         images: [ images[0] ],
@@ -285,7 +328,7 @@ test('Sets custom headers on the postback', function(t) {
 
     t.timeoutAfter(timeout);
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function(err, req) {
         var results = req.body.results;
         checkPostback(t, results);
         t.equal(req.headers['x-custom-header'], 'my custom header', 'postback has custom header');
@@ -297,8 +340,7 @@ test('Long polls for response if no postbackUrl is provided', function(t) {
     var resize = Resizer({
             blitlineAppId: process.env.BLITLINE_APP_ID,
             s3Bucket: process.env.S3_BUCKET
-        }),
-        timer;
+        });
 
     var resizeTask = {
         images: images,
@@ -312,18 +354,11 @@ test('Long polls for response if no postbackUrl is provided', function(t) {
         t.equal(typeof data[0], 'object', 'got and object back for first job');
         t.error(data[0].results.errors, 'Blitline processing complete without errors');
         t.equal(data[0].results.images.length, resizeTask.sizes.length, 'got correct number of images back');
-        
-        // Files that need cleanup from s3
-        s3files = s3files.concat(data.reduce(function(p, c) {
-            return p.concat(c.results.images.map(function(image) {
-                return image.s3_url;
-            }));
-        }, []));
-        
+
         t.end();
     });
 
-    postbackCallback = function(err, req, res) {
+    postbackCallback = function() {
         t.fail('should not call postback');
     };
 });
